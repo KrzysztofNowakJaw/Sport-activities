@@ -1,0 +1,55 @@
+name: Daily Report Generation
+
+on:
+  schedule:
+    - cron: '0 16 * * *'   # Every day at 4 PM UTC
+  workflow_dispatch:        # Allow manual trigger
+
+jobs:
+  generate-report:
+    runs-on: macos-latest   # Using macOS (for iOS environment)
+
+    steps:
+      - name: Checkout main Strava repository
+        uses: actions/checkout@v4
+        with:
+          repository: KrzysztofNowakJaw/Strava
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          path: Strava
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.3.0'
+
+      - name: Install required R libraries
+        run: |
+          Rscript -e 'install.packages(c("httr2", "jsonlite", "tidyverse", "RPostgreSQL", "DBI"), repos="https://cloud.r-project.org")'
+
+      - name: Run dependent API script
+        run: |
+          Rscript "RA Race 2025/Scripts/API/API Connection.R"
+
+
+      - name: Render Quarto report files
+        run: |
+          cd Strava
+          quarto render Sport.qmd
+          # Ensure Sport.html is updated alongside
+          if [ -f "Sport.html" ]; then
+            echo "Sport.html refreshed successfully"
+          fi
+
+      - name: Upload refreshed files as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-sport-report
+          path: |
+            Strava/Sport.qmd
+            Strava/Sport.html
+
+      - name: Deploy refreshed files to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: Strava
