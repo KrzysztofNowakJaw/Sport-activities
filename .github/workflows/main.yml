@@ -2,12 +2,12 @@ name: Daily Report Generation
 
 on:
   schedule:
-    - cron: '0 16 * * *'   # Every day at 4 PM UTC
-  workflow_dispatch:        # Allow manual trigger
+    - cron: '0 16 * * *'   # Codziennie o 16:00 UTC
+  workflow_dispatch:        # Możliwość ręcznego uruchomienia
 
 jobs:
   generate-report:
-    runs-on: macos-latest   # Using macOS (for iOS environment)
+    runs-on: macos-latest   # macOS = środowisko zbliżone do iOS
 
     steps:
       - name: Checkout main Strava repository
@@ -16,6 +16,13 @@ jobs:
           repository: KrzysztofNowakJaw/Strava
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           path: Strava
+
+      - name: Checkout Sport-activities repository
+        uses: actions/checkout@v4
+        with:
+          repository: KrzysztofNowakJaw/Sport-activities
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          path: Sport-activities
 
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
@@ -28,28 +35,23 @@ jobs:
 
       - name: Run dependent API script
         run: |
-          Rscript "RA Race 2025/Scripts/API/API Connection.R"
-
+          Rscript "Sport-activities/RA Race 2025/Scripts/API/API Connection.R"
 
       - name: Render Quarto report files
         run: |
-          cd Strava
+          cd "Sport-activities/Sport activities files"
           quarto render Sport.qmd
-          # Ensure Sport.html is updated alongside
-          if [ -f "Sport.html" ]; then
-            echo "Sport.html refreshed successfully"
-          fi
 
       - name: Upload refreshed files as artifact
         uses: actions/upload-artifact@v4
         with:
           name: daily-sport-report
           path: |
-            Strava/Sport.qmd
-            Strava/Sport.html
+            Sport-activities/Sport activities files/Sport.qmd
+            Sport-activities/Sport activities files/Sport.html
 
       - name: Deploy refreshed files to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: Strava
+          publish_dir: Sport-activities/Sport activities files
