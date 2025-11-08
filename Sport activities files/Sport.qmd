@@ -1,0 +1,47 @@
+---
+title: "Reproducible Quarto Document"
+format: html
+engine: knitr
+---
+
+
+```{r}
+#| echo: false
+
+library(ggplot2)
+library(dplyr)
+
+Chart <- df |>
+  summarise(Distance = sum(distance) / 1000, .by = type) |>
+  arrange(desc(Distance)) |>
+  ggplot(aes(y = type, x = Distance)) +
+  geom_bar(stat = "identity", fill = "steelblue", width = 0.5) +  # cieńsze kolumny
+  scale_x_continuous(breaks = seq(0, CumDist, by = 50)) +  # gęstsze ticki co 5 km
+  ylab("") +
+  labs(
+    title = "Distance by type",
+    subtitle = "Units are kilometers",
+    caption = "Source: Strava API"
+  ) +
+  theme_minimal()
+
+Chart
+
+
+```
+
+```{r}
+#| echo: false
+df |>
+arrange(type,start_date) |>
+mutate(DisCum = cumsum(distance/1000),.by = c(type)) |>
+ggplot(aes(x=start_date,y = DisCum)) +
+geom_line(color = "steelblue") +
+ylab(label = "Kilometers") +
+xlab(label = "Period") +
+scale_y_continuous(breaks = seq(0, CumDist, by = 50)) +
+labs(title = "Distance up to date",subtitle = "Units are kilometers",caption = "Source: Strava API") +
+facet_wrap(~type) +
+theme_minimal()
+
+```
